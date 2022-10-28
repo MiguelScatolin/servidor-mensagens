@@ -76,5 +76,8 @@ struct sockaddr_storage parseAddress(char *ipAdressString, char *portString) {
   logexit("nao foi possivel conectar");
 };
 
+bool stringEqual(char *s1, char *s2) {
+  return strcmp(s1, s2) == 0;
+}
 
 #endif

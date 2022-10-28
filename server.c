@@ -13,25 +13,127 @@ typedef enum {
   listar
 } operacao;
 
-struct cmd {
+typedef struct cmd {
   operacao type;
-  int *switches;
-  int *racks;
-};
+  int switches[3];
+  int rack;
+} cmd;
 
-struct cmd* parsecmd(char *s)
-{
-  char *es;
-  struct cmd *cmd;
-
-  //cmd = parseline(&s, es);
-
-  return cmd;
+operacao getType(char *typeString) {
+  if(stringEqual(typeString, "add"))
+    return instalar;
+  else if(stringEqual(typeString, "rm"))
+    return desinstalar;
+  else if(stringEqual(typeString, "get"))
+    return ler;
+  else if(stringEqual(typeString, "ls"))
+    return listar;
+  else 
+    logexit("invalid command");
 }
 
-int runcmd(struct cmd *cmd)
+cmd parsecmd(char *s)
+{
+  char *es;
+  cmd comando;
+
+  int value;
+  char *val = strtok(s, " ");
+  comando.type = getType(val);
+  for(int i = 0; i < 3; i++)
+    comando.switches[i] = -1;
+
+  switch (comando.type) 
+  {
+    case instalar:
+      val = strtok(NULL, " "); 
+      if(!stringEqual(val, "sw"))
+        logexit("formato incorreto");
+
+      for(int i = 0; i < 3; i++) {
+        val = strtok(NULL, " ");
+        if(val == NULL)
+          logexit("comando incompleto");
+        
+        if(stringEqual(val, "in"))
+          break;
+
+        if(sscanf(val, "%d", &value) != 1)
+          logexit("formato incorreto");
+        
+        comando.switches[i] = value;
+      }
+
+      val = strtok(NULL, " ");
+      if(!stringEqual(val, "in") && sscanf(val, "%d", &value) != 1)
+        logexit("esperava numero de rack");
+
+      comando.rack = value;
+      break;
+    case desinstalar:
+      
+      val = strtok(NULL, " "); 
+      if(!stringEqual(val, "sw"))
+        logexit("formato incorreto");
+
+      val = strtok(NULL, " ");
+      if(val == NULL)
+        logexit("comando incompleto");
+        
+      if(sscanf(val, "%d", &value) != 1)
+        logexit("formato incorreto");
+      
+      comando.switches[0] = value;
+
+      val = strtok(NULL, " ");
+      if(val == NULL || !stringEqual(val, "in"))
+        logexit("comando incompleto");
+        
+      val = strtok(NULL, " ");
+      if(sscanf(val, "%d", &value) != 1)
+        logexit("esperava numero de rack");
+
+      comando.rack = value;
+      break;
+    case listar:
+      val = strtok(NULL, " ");
+      if(sscanf(val, "%d", &value) != 1)
+        logexit("esperava numero de rack");
+
+      comando.rack = value;
+      break;
+    case ler:
+      for(int i = 0; i < 2; i++) {
+        val = strtok(NULL, " ");
+        if(val == NULL)
+          logexit("comando incompleto");
+        
+        if(stringEqual(val, "in"))
+          break;
+
+        if(sscanf(val, "%d", &value) != 1)
+          logexit("formato incorreto");
+        
+        comando.switches[i] = value;
+      }
+
+      val = strtok(NULL, " ");
+      if(!stringEqual(val, "in") && sscanf(val, "%d", &value) != 1)
+        logexit("esperava numero de rack");
+
+      comando.rack = value;
+      break;
+    
+    default:
+      logexit("tipo de comando desconhecido");
+  }
+
+  return comando;
+}
+
+int runcmd(struct cmd cmd)
 { 
-  switch (cmd->type) 
+  switch (cmd.type) 
   {
     case instalar:
       //instalarSwitch();
