@@ -233,6 +233,22 @@ void desinstalarSwitch(cmd comando) {
   sprintf(successMessage, "switch 0%d removed from 0%d", comando.switches[0], comando.rack);
   sendMessage(successMessage);
 }
+
+void lerDados(cmd comando) {
+  int numberOfSwitches = getNumberOfSwitchesInCommand(comando);
+  if(!isSwitchInstalled(comando.rack, comando.switches[0])
+    || (numberOfSwitches > 1 && !isSwitchInstalled(comando.rack, comando.switches[1]))) {
+    sendMessage("error switch doesn’t exist");
+    return;
+  }
+  char successMessage[50];
+  if(numberOfSwitches == 1)
+    sprintf(successMessage, "%d Kbs", 4300);
+  else
+    sprintf(successMessage, "%d Kbs %d Kbs", 4300, 134);
+  sendMessage(successMessage);
+}
+
 void runcmd(cmd comando)
 {
   switch (comando.type) 
@@ -247,7 +263,7 @@ void runcmd(cmd comando)
       //listarSwitches();
       break;
     case ler:
-      //lerDados();
+      lerDados(comando);
       break;
     
     default:
