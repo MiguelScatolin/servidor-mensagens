@@ -5,6 +5,9 @@
 #include <string.h>
 
 #define NUMERO_MAX_CONEXOES_PENDENTES 10
+#define NUMERO_DE_RACKS 4
+#define SWITCHES_POR_RACK 3
+#define SWITCHES_POR_COMANDO 3
 
 typedef enum {
   instalar,
@@ -15,7 +18,7 @@ typedef enum {
 
 typedef struct cmd {
   operacao type;
-  int switches[3];
+  int switches[SWITCHES_POR_COMANDO];
   int rack;
 } cmd;
 
@@ -41,7 +44,7 @@ cmd parsecmd(char *s)
   char *val = strtok(s, " ");
   comando.type = getType(val);
   for(int i = 0; i < 3; i++)
-    comando.switches[i] = -1;
+    comando.switches[i] = 0;
 
   switch (comando.type) 
   {
@@ -131,22 +134,106 @@ cmd parsecmd(char *s)
   return comando;
 }
 
-int runcmd(struct cmd cmd)
-{ 
-  switch (cmd.type) 
+bool hasSwitchTypeUnknownError(cmd comando)
+{
+  for(int i = 0; i < SWITCHES_POR_COMANDO; i++) 
+    if(comando.switches[i] < 0 || comando.switches[i] > 4)
+      return true;
+  
+  return false;
+}
+
+int getNumberOfSwitchesInRack(int rack) {
+  int numberOfSwitches = 0;
+
+  for(int i = 0; i < SWITCHES_POR_RACK; i++)
+    if(racks[rack][i])
+      numberOfSwitches++;
+
+  return numberOfSwitches;
+}
+
+int getNumberOfSwitchesInCommand(cmd comando) {
+  int numberOfSwitches = 0;
+
+  for(int i = 0; i < SWITCHES_POR_COMANDO; i++)
+    if(comando.switches[i])
+      numberOfSwitches++;
+
+  return numberOfSwitches;
+}
+
+bool hasRackLimitExceededError(cmd comando)
+{
+  int numberOfSwitchesInRack = getNumberOfSwitchesInRack(comando.rack);
+  int remainingSpace = SWITCHES_POR_RACK - numberOfSwitchesInRack;
+  int switchesInCommand = getNumberOfSwitchesInCommand(comando);
+  return (remainingSpace - switchesInCommand) >= 0;
+}
+
+int switchAlreadyInstalled(cmd comando)
+{
+  int numberOfSwitchesInRack = getNumberOfSwitchesInRack(comando.rack);
+  int remainingSpace = SWITCHES_POR_RACK - numberOfSwitchesInRack;
+  int switchesInCommand = getNumberOfSwitchesInCommand(comando);
+  return (remainingSpace - switchesInCommand) >= 0;
+}
+
+void instalarSwitch(cmd comando) {
+  if(hasSwitchTypeUnknownError(comando)) {
+    sendMessage("error switch type unknown");
+    return;
+  }
+  if(hasRackLimitExceededError(comando)) {
+    sendMessage("error rack limit exceeded");
+    return;
+  }
+  
+  int repeatingSwitch = switchAlreadyInstalled(comando);
+  if(repeatingSwitch) {
+    char errorMessage[50];
+    sprintf(errorMessage, "error switch 0%d already installed in 0%d", repeatingSwitch, comando.rack);
+    sendMessage(errorMessage);
+    return;
+  }
+
+  int switchIndex = 0;
+  while(racks[comando.rack][switchIndex])
+    switchIndex++;
+  for(int i = 0; i < SWITCHES_POR_COMANDO; i++) {
+    if(comando.switches[i]) {
+      racks[comando.rack][switchIndex] = comando.switches[i];
+      switchIndex++;
+    }
+  }
+
+  char successMessage[50];
+  int numberOfSwitchesInCommand = getNumberOfSwitchesInCommand(comando);
+  if(numberOfSwitchesInCommand == 1)
+    sprintf(successMessage, "switch 0%d installed”", comando.switches[0]);
+  if(numberOfSwitchesInCommand == 2)
+    sprintf(successMessage, "switch 0%d 0%d installed”", comando.switches[0], comando.switches[1]);
+  if(numberOfSwitchesInCommand == 3)
+    sprintf(successMessage, "switch 0%d 0%d 0%d installed”", comando.switches[0], comando.switches[1], comando.switches[2]);
+  sendMessage(successMessage);
+}
+
+void runcmd(cmd comando)
+{
+  switch (comando.type) 
   {
     case instalar:
-      //instalarSwitch();
-      return 0;
+      instalarSwitch(comando);
+      break;
     case desinstalar:
       //desinstalarSwitch();
-      return 0;
+      break;
     case listar:
       //listarSwitches();
-      return 0;
+      break;
     case ler:
       //lerRack();
-      return 0;
+      break;
     
     default:
       logexit("tipo de comando desconhecido");
@@ -178,6 +265,8 @@ struct sockaddr_storage initializeServerSocket(char *version, char *portString) 
   } else
     logexit("nao foi possivel conectar"); 
 }
+
+int racks[NUMERO_DE_RACKS][SWITCHES_POR_RACK] = {};
 
 int main(int argc, char *argv[]) {
   if (argc < 3) 

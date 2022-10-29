@@ -10,7 +10,7 @@
 
 #define BUFSZ 1000
 
-int sendMessage();
+void sendMessage();
 char *receiveMessage(int s);
 char *addressToString(const struct sockaddr *address);
 struct sockaddr_storage parseAddress(char *ipAdress, char *port);

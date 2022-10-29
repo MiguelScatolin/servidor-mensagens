@@ -8,9 +8,8 @@ void logexit(char *errorMessage) {
   exit(EXIT_FAILURE);
 }
 
-int sendMessage(char *message) {
+void sendMessage(char *message) {
   printf("message: %s\n", message);
-  return 0;
 }
 
 char *receiveMessage(int s) {
