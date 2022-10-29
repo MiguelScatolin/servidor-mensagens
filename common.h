@@ -7,8 +7,9 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdbool.h>
+#include <errno.h>
 
-#define BUFSZ 1000
+#define BUFSZ 1024
 
 void sendMessage();
 char *receiveMessage(int s);

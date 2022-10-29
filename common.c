@@ -4,6 +4,8 @@
 #include "common.h"
 
 void logexit(char *errorMessage) {
+  if(errno)
+    printf("errno: %d", errno);
   perror(errorMessage);
   exit(EXIT_FAILURE);
 }

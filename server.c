@@ -10,6 +10,7 @@
 #define SWITCHES_POR_COMANDO 3
 
 int racks[NUMERO_DE_RACKS][SWITCHES_POR_RACK] = {};
+int clientSocket, serverSocket;
 
 typedef enum {
   instalar,
@@ -33,13 +34,14 @@ operacao getType(char *typeString) {
     return ler;
   else if(stringEqual(typeString, "ls"))
     return listar;
+  else if(stringEqual(typeString, "exit"))
+    logexit("connection terminated");
   else 
     logexit("invalid command");
 }
 
 cmd parsecmd(char *s)
 {
-  char *es;
   cmd comando;
 
   int value;
@@ -237,7 +239,7 @@ void desinstalarSwitch(cmd comando) {
 }
 
 void listarSwitches(cmd comando) {
-  const numberOfSwitchesInRack = getNumberOfSwitchesInRack(comando.rack);
+  int numberOfSwitchesInRack = getNumberOfSwitchesInRack(comando.rack);
   if(comando.rack > NUMERO_DE_RACKS) {
     sendMessage("error rack doesn't exist");
     return;
@@ -294,7 +296,7 @@ void runcmd(cmd comando)
   }
 }
 
-struct sockaddr_storage initializeServerSocket(char *version, char *portString) {
+struct sockaddr_storage initializeServerSocket(char *ipVersion, char *portString) {
   if(portString == NULL)
     logexit("port nulo");
 
@@ -304,13 +306,13 @@ struct sockaddr_storage initializeServerSocket(char *version, char *portString) 
   port = htons(port); //host to network short
 
   struct sockaddr_storage storage;
-  if (strcmp(version, "v4") == 0) {
+  if (strcmp(ipVersion, "v4") == 0) {
     struct sockaddr_in *addr4 = (struct sockaddr_in *)(&storage);
     addr4->sin_family = AF_INET;
     addr4->sin_addr.s_addr = INADDR_ANY;
     addr4->sin_port = port;
     return storage;
-  } else if(strcmp(version, "v6") == 0) {
+  } else if(strcmp(ipVersion, "v6") == 0) {
     struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)(&storage);
     addr6->sin6_family = AF_INET6;
     addr6->sin6_addr = in6addr_any;
@@ -318,6 +320,38 @@ struct sockaddr_storage initializeServerSocket(char *version, char *portString) 
     return storage;
   } else
     logexit("nao foi possivel conectar"); 
+}
+
+int connectToClient(char *ipVersion, char *portString) {
+  struct sockaddr_storage storage = initializeServerSocket(ipVersion, portString);
+
+  int serverSocket = socket(storage.ss_family, SOCK_STREAM, 0);
+  if(serverSocket == -1)
+    logexit("socket");
+
+  int enable = 1;
+  if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&enable, sizeof(int)) != 0)
+    logexit("setsockopt");
+
+  struct sockaddr *address = (struct sockaddr *)(&storage);
+  printf("socket: %d\n", serverSocket);
+  printf("sa_family: %u\n", address->sa_family);
+  printf("sa_data: %s\n", address->sa_data);
+  printf("sa_len: %u\n", address->sa_len);
+  printf("sizeof(storage): %d\n", sizeof(storage));
+  if(bind(serverSocket, address, sizeof(storage)) == -1)
+    logexit("bind");
+
+  if(listen(serverSocket, NUMERO_MAX_CONEXOES_PENDENTES))
+    logexit("bind");
+
+  char *adressString = addressToString(address);
+  printf("bound to %s, waiting connections\n", adressString);
+
+  struct sockaddr_storage clientStorage;
+  struct sockaddr *clientAddress = (struct sockaddr *)(&clientAddress);
+  
+  int clientSocket = accept(serverSocket, clientAddress, sizeof(clientStorage));
 }
 
 void printRacks() {
@@ -339,33 +373,17 @@ int main(int argc, char *argv[]) {
   printf("ipVersion: %s\n", ipVersion);
   printf("port: %s\n", port);
 
-  struct sockaddr_storage storage = initializeServerSocket(ipVersion, port);
-  struct sockaddr *address = (struct sockaddr *)(&storage);
-
-  int s = socket(storage.ss_family, SOCK_STREAM, 0);
-  if(s == -1)
-    logexit("socket");
-
-  if(bind(s, address, sizeof(storage)))
-    logexit("bind");
-
-  if(listen(s, NUMERO_MAX_CONEXOES_PENDENTES))
-    logexit("bind");
-
-  printf("bound to %s, waiting connections\n", addressToString(address));
-
-  struct sockaddr_storage clientStorage = initializeServerSocket(ipVersion, port);
-  struct sockaddr *clientAddress = (struct sockaddr *)(&clientStorage);
-  int clientSocket = accept(s, clientAddress, sizeof(clientStorage));
+  clientSocket = connectToClient(ipVersion, port);
   if(clientSocket == -1)
     logexit("accept");
 
   char *buf;
   while(1) {
-    buf = receiveMessage(s);
+    buf = receiveMessage(clientSocket);
     runcmd(parsecmd(buf));
   }
 
+  close(serverSocket);
   close(clientSocket);
 
   exit(EXIT_SUCCESS);
