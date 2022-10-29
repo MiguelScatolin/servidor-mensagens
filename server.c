@@ -9,6 +9,8 @@
 #define SWITCHES_POR_RACK 3
 #define SWITCHES_POR_COMANDO 3
 
+int racks[NUMERO_DE_RACKS][SWITCHES_POR_RACK] = {};
+
 typedef enum {
   instalar,
   desinstalar,
@@ -318,13 +320,19 @@ struct sockaddr_storage initializeServerSocket(char *version, char *portString) 
     logexit("nao foi possivel conectar"); 
 }
 
-int racks[NUMERO_DE_RACKS][SWITCHES_POR_RACK] = {};
+void printRacks() {
+  printf("Racks: \n");
+  for(int i = 0; i < NUMERO_DE_RACKS; i ++) {
+    for(int j = 0; j < SWITCHES_POR_RACK; j++)
+      printf("%d ", racks[i][j]);
+    printf("\n");
+  }
+}
 
 int main(int argc, char *argv[]) {
+  printRacks();
   if (argc < 3) 
     logexit("parametros nao informados");
-
-  printf("server booted\n");
 
   char *ipVersion = argv[1];
   char *port = argv[2];
