@@ -210,11 +210,11 @@ void instalarSwitch(cmd comando) {
   char successMessage[50];
   int numberOfSwitchesInCommand = getNumberOfSwitchesInCommand(comando);
   if(numberOfSwitchesInCommand == 1)
-    sprintf(successMessage, "switch 0%d installed”", comando.switches[0]);
+    sprintf(successMessage, "switch 0%d installed", comando.switches[0]);
   if(numberOfSwitchesInCommand == 2)
-    sprintf(successMessage, "switch 0%d 0%d installed”", comando.switches[0], comando.switches[1]);
+    sprintf(successMessage, "switch 0%d 0%d installed", comando.switches[0], comando.switches[1]);
   if(numberOfSwitchesInCommand == 3)
-    sprintf(successMessage, "switch 0%d 0%d 0%d installed”", comando.switches[0], comando.switches[1], comando.switches[2]);
+    sprintf(successMessage, "switch 0%d 0%d 0%d installed", comando.switches[0], comando.switches[1], comando.switches[2]);
   sendMessage(successMessage);
 }
 
@@ -231,6 +231,27 @@ void desinstalarSwitch(cmd comando) {
   racks[comando.rack][comando.switches[0]] = 0;
   char successMessage[50];
   sprintf(successMessage, "switch 0%d removed from 0%d", comando.switches[0], comando.rack);
+  sendMessage(successMessage);
+}
+
+void listarSwitches(cmd comando) {
+  const numberOfSwitchesInRack = getNumberOfSwitchesInRack(comando.rack);
+  if(comando.rack > NUMERO_DE_RACKS) {
+    sendMessage("error rack doesn't exist");
+    return;
+  }
+  if(numberOfSwitchesInRack == 0) {
+    sendMessage("empty rack");
+    return;
+  }
+
+  char successMessage[50];
+  if(numberOfSwitchesInRack == 1)
+    sprintf(successMessage, "0%d", racks[comando.rack][0]);
+  if(numberOfSwitchesInRack == 2)
+    sprintf(successMessage, "0%d, 0%d", racks[comando.rack][0], racks[comando.rack][1]);
+  if(numberOfSwitchesInRack == 3)
+    sprintf(successMessage, "0%d, 0%d, 0%d", racks[comando.rack][0], racks[comando.rack][1], racks[comando.rack][2]);
   sendMessage(successMessage);
 }
 
@@ -260,7 +281,7 @@ void runcmd(cmd comando)
       desinstalarSwitch(comando);
       break;
     case listar:
-      //listarSwitches();
+      listarSwitches(comando);
       break;
     case ler:
       lerDados(comando);
