@@ -32,15 +32,18 @@ int main(int argc, char *argv[]) {
   if(s == -1)
     logexit("falha ao inicializar socket");
 
-  if(0 != connect(s, address, sizeof(storage)))
+  if(0 != connect(s, address, sizeof(struct sockaddr_in)))
     logexit("falha ao conectar");
 
   static char buf[100];
-  char *receiveBuf;
+  char receiveBuf[BUFSZ];
+	memset(receiveBuf, 0, BUFSZ);
   while(getcmd(buf, sizeof(buf)) >= 0) {
-    sendMessage(buf);
-    receiveBuf = receiveMessage(s);
-    printf("%s", receiveBuf);
+    sendMessage(s, buf);
+    if(stringEqual(buf, "exit") || stringEqual(buf, "exit\n"))
+      break;
+    recv(s, receiveBuf, BUFSZ - 1, 0);
+    printf("%s\n", receiveBuf);
   }
 
   close(s);

@@ -10,12 +10,14 @@ void logexit(char *errorMessage) {
   exit(EXIT_FAILURE);
 }
 
-void sendMessage(char *message) {
-  printf("message: %s\n", message);
+void sendMessage(int s, char *message) {
+  size_t count = send(s, message, strlen(message)+1, 0);
+	if (count != strlen(message)+1)
+		logexit("send");
 }
 
 char *receiveMessage(int s) {
-  char *buf;
+  char buf[BUFSZ];
   recv(s, buf, BUFSZ, 0);
   return buf;
 }
@@ -79,6 +81,35 @@ struct sockaddr_storage parseAddress(char *ipAdressString, char *portString) {
 
 bool stringEqual(char *s1, char *s2) {
   return strcmp(s1, s2) == 0;
+}
+
+void addrtostr(const struct sockaddr *addr, char *str, size_t strsize) {
+    int version;
+    char addrstr[INET6_ADDRSTRLEN + 1] = "";
+    uint16_t port;
+
+    if (addr->sa_family == AF_INET) {
+        version = 4;
+        struct sockaddr_in *addr4 = (struct sockaddr_in *)addr;
+        if (!inet_ntop(AF_INET, &(addr4->sin_addr), addrstr,
+                       INET6_ADDRSTRLEN + 1)) {
+            logexit("ntop");
+        }
+        port = ntohs(addr4->sin_port); // network to host short
+    } else if (addr->sa_family == AF_INET6) {
+        version = 6;
+        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)addr;
+        if (!inet_ntop(AF_INET6, &(addr6->sin6_addr), addrstr,
+                       INET6_ADDRSTRLEN + 1)) {
+            logexit("ntop");
+        }
+        port = ntohs(addr6->sin6_port); // network to host short
+    } else {
+        logexit("unknown protocol family.");
+    }
+    if (str) {
+        snprintf(str, strsize, "IPv%d %s %hu", version, addrstr, port);
+    }
 }
 
 #endif
