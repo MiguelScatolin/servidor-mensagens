@@ -392,7 +392,7 @@ int connectToClient(char *ipVersion, char *portString) {
   }
 
   struct sockaddr *addr = (struct sockaddr *)(&storage);
-  if (0 != bind(serverSocket, addr, sizeof(struct sockaddr_in))) {
+  if (0 != bind(serverSocket, addr, sizeof(storage))) {
       logexit("bind");
   }
 
