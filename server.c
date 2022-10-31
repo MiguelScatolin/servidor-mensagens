@@ -43,8 +43,10 @@ operacao getType(char *typeString) {
     return listar;
   else if(stringEqual(typeString, "exit") || stringEqual(typeString, "exit\n"))
     terminateConnection();
-  else 
-    logexit("invalid command");
+  else {
+    sendMessage(clientSocket, "invalid command");
+    terminateConnection();
+  }
 }
 
 cmd parsecmd(char s[BUFSZ])
@@ -212,6 +214,10 @@ void instalarSwitch(cmd comando) {
     sendMessage(clientSocket, "error switch type unknown");
     return;
   }
+  if(comando.rack > NUMERO_DE_RACKS) {
+    sendMessage(clientSocket, "error rack doesn't exist");
+    return;
+  }
   if(hasRackLimitExceededError(comando)) {
     sendMessage(clientSocket, "error rack limit exceeded");
     return;
@@ -246,6 +252,11 @@ void instalarSwitch(cmd comando) {
 }
 
 void desinstalarSwitch(cmd comando) {
+  if(comando.rack > NUMERO_DE_RACKS) {
+    sendMessage(clientSocket, "error rack doesn't exist");
+    return;
+  }
+
   if(!rackHasSwitch(comando.rack, comando.switches[0])) {
     sendMessage(clientSocket, "error switch doesn’t exist");
     return;
@@ -288,6 +299,10 @@ int getRandomKbs() {
 }
 
 void lerDados(cmd comando) {
+  if(comando.rack > NUMERO_DE_RACKS) {
+    sendMessage(clientSocket, "error rack doesn't exist");
+    return;
+  }
   int numberOfSwitches = getNumberOfSwitchesInCommand(comando);
   if(!rackHasSwitch(comando.rack, comando.switches[0])
     || (numberOfSwitches > 1 && !rackHasSwitch(comando.rack, comando.switches[1]))) {
